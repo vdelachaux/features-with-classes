@@ -95,7 +95,8 @@ You can define more than one key for a feature:
 ### Declaration of flags
 
 ```4d
-Feature:=cs.Feature.new(1980; Folder(fk user preferences folder).file("4d.mobile"))
+// Instantiation of the class for the 19R8 branch with the local preferences stored in the "myBase.features" file into the 4D folder.
+Feature:=cs.Feature.new(1980; Folder(fk user preferences folder).file("myBase.features"))
 
 // Mark:R6Feature.delivered("alias"; 1960)  // [MOBILE] Use aliasesFeature.delivered("androidDataSet"; 1960)  // [ANDROID] Data set
 

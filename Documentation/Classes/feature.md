@@ -10,32 +10,36 @@ This class manages feature enablement and disablement in 4D code.
 
 ## Constructor
 
-> **cs**.feature.new (version : `Integer` {; file : `4D.File`})
+> **cs**.feature.new (version : `Text` {; file : `4D.File`})
 
-* The class constructor must be called with at least a `version` parameter, which is the current branch version number.
+* The class constructor must be called with at least a `version` parameter, which is the current branch version number (as a text string, e.g. "19.8").
 
 ```4d
 var $feature : cs.feature
-$feature:=cs.feature.new(1980)
+$feature:=cs.feature.new("19.8")
 ```
 
 * The second optional parameter is a `file` containing local directives to enable or disable one or more features for development or testing purposes.
 
 ```4d
 var $feature : cs.feature
-$feature:=cs.feature.new(1980; Folder(fk user preferences folder).file("4d.mobile"))
+$feature:=cs.feature.new("19.8"; Folder(fk user preferences folder).file("4d.mobile"))
 ```
 
 ## <a name="define">Defining a feature flag</a>
 
 |Function|Action|
 |--------|------|   
-|.**unstable** ( `feature` ) | Store a feature as unstable (enabled when component version ≥ 4D version)
-|.**delivered** ( `feature` ; `version` ) | Store a feature as delivered for the given version
-|.**debug** ( `feature` ) | Store a feature as debug (available only in dev mode / Matrix database)
-|.**wip** ( `feature` ) | Alias of **debug**
-|.**main** ( `feature` ) | Store a feature as available only in the main branch (Alpha)
+|.**unstable** ( `feature` ) | Store a feature as unstable (enabled when runtime version ≥ internal version)
+|.**delivered** ( `feature` ; `version` ) | Store a feature as delivered for the given version (Text format)
+|.**matrix** ( `feature` ) | Store a feature as enabled only in matrix database (component)
+|.**debug** ( `feature` ) | Alias of **matrix**
+|.**interpeted** ( `feature` ) | Store a feature as enabled only in interpreted mode (not compiled)
+|.**main** ( `feature` ) | Store a feature as enabled only in the main branch
+|.**project** ( `feature` ) | Store a feature as enabled only in project mode database
+|.**binary** ( `feature` ) | Store a feature as enabled only in binary database mode
 |.**pending** ( `feature` ) | Store a feature as pending (not available)
+|.**rejected** ( `feature` ) | Store a feature as rejected (not available)
 |.**dev** ( `feature` ; user : `Text` \| `Collection` ) | Store a feature as available only for a specific system user
 |.**alias** ( name : `Text` ; `feature` ) | Store an alias value for a feature (copy at declaration time)
 
@@ -103,8 +107,8 @@ Notes:
 
 * Unknown keys trigger an `ASSERT`.
 * If both `id` and `name` are present, `id` is used.
-* Integer feature ids are internally stored with a leading underscore.
 * `bitness` is effectively obsolete for current 4D releases (64-bit only).
+* `wip` is deprecated; use `matrix()` or other specific activation methods instead.
 
 ## Examples
 
@@ -123,12 +127,12 @@ If you use Git branches, feature declarations should follow the branch lifecycle
 ### Declaration of flags
 
 ```4d
-// Create the class for the 19R8 version of the component and with a local file
-Feature:=cs.feature.new(1980; Folder(fk user preferences folder).file("4d.mobile"))
+// Create the class for the 19.8 version of the component and with a local file
+Feature:=cs.feature.new("19.8"; Folder(fk user preferences folder).file("4d.mobile"))
 
 // Mark:R6
-Feature.delivered("alias"; 1960)  // [MOBILE] Use aliases
-Feature.delivered("androidDataSet"; 1960)  // [ANDROID] Data set
+Feature.delivered("alias"; "19.6")  // [MOBILE] Use aliases
+Feature.delivered("androidDataSet"; "19.6")  // [ANDROID] Data set
 
 // Mark:R7
 Feature.unstable("openURLAction")  // azure:3625 [MOBILE] Execute an action that opens a web area
@@ -136,14 +140,23 @@ Feature.unstable("openURLAction")  // azure:3625 [MOBILE] Execute an action that
 // Mark:-🚧 MAIN
 Feature.main("inputControlArchive")  // azure:5424 The mobile project shall support a zip format for input control with Android and iOS.
 
-// Mark:-🚧 WIP
-Feature.wip("DataSourceClass")  // Work with DataSource class to test the data source
+// Mark:-🔧 Matrix (component only)
+Feature.matrix("componentFeature")  // Available only when running as a component in matrix database
+
+// Mark:-💻 Project mode only
+Feature.project("projectModeFeature")  // Available only in project mode databases
+
+// Mark:-📝 Interpreted mode
+Feature.interpeted("debugFeature")  // Available only in interpreted (dev) mode
 
 // Mark:-👴🏻 Vincent
 Feature.dev("vdl"; New collection("vdelachaux"; "Vincent de LACHAUX"))
 
 // Mark:-⛔ PENDING
 Feature.pending(129953)  // [MOBILE] Handle Many-one-Many relations
+
+// Mark:-❌ REJECTED
+Feature.rejected(999999)  // Rejected feature
 
 // Mark:-→ Local preferences
 Feature.loadLocal()
@@ -158,7 +171,7 @@ Feature.alias("many-one-many"; 129953)
 Logger:=cs.logger.new()
 Feature.log(Formula(Logger.log($1)))
 
-SET ASSERT ENABLED(Feature.with("debug"); *)
+SET ASSERT ENABLED(Feature.with("debugFeature"); *)
 ```
 
 ### Usage in the code
